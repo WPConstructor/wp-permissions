@@ -2,7 +2,7 @@
 
 v0.1.0
 
-**Shared Linux Permissions Manager for WordPress Development**
+## Shared Linux Permissions Manager for WordPress Development
 
 WPConstructor WP Permissions is a Bash utility that configures shared file and directory permissions for local WordPress development.
 

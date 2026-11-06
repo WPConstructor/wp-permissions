@@ -169,7 +169,17 @@ esac
 if [[ ! -f "$TARGET/wp-config.php" ]] &&
    [[ ! -d "$TARGET/wp-admin" || ! -d "$TARGET/wp-includes" ]]; then
 
-    die "The target does not appear to be a WordPress installation."
+    error "The target does not appear to be a WordPress installation."
+    echo
+
+    read -r -p "Run anyway? [y/N]: " CONFIRM
+
+    if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
+
+        warning "Operation cancelled."
+        exit 0
+
+    fi
 
 fi
 
