@@ -1,28 +1,29 @@
-# WPConstructor Permissions
+# WPConstructor WP Permissions
+
+v0.1.0
 
 **Shared Linux Permissions Manager for WordPress Development**
 
-WPConstructor Permissions is a Bash utility designed to configure shared file and directory permissions for WordPress installations.
+WPConstructor WP Permissions is a Bash utility that configures shared file and directory permissions for local WordPress development.
 
-It allows your Linux user and your web server user (Apache/PHP) to access and modify the same WordPress files without constantly changing ownership or permissions.
-
-Designed primarily for local WordPress development environments such as XAMPP.
+It allows your local Linux user and your Apache/PHP web server user to access and modify the same WordPress installation without constantly changing file ownership or permissions manually.
 
 ---
-
+d
 ## Features
 
-- Automatic detection of the current Linux user.
-- Web server user validation.
-- Interactive prompt if the configured web server user does not exist.
-- Persistent configuration stored in `permissions.conf`.
-- Automatic creation of a shared Linux group.
-- Automatic group membership configuration.
-- Recursive ownership configuration.
-- Directory and file permission management.
-- Access Control List (ACL) support.
-- Default ACLs for newly created files and directories.
-- Suitable for local WordPress development environments.
+- Automatically detects your Linux username when executed with `sudo`.
+- Supports a configurable Apache/PHP web server user.
+- Creates and manages a shared Linux group.
+- Adds the required users to the shared group.
+- Sets appropriate ownership and permissions recursively.
+- Enables the setgid bit on directories for shared group inheritance.
+- Supports Access Control Lists (ACLs).
+- Continues to work without ACL support using standard Unix permissions.
+- Saves configuration settings for future use.
+- Checks the target directory before applying changes.
+- Provides confirmation before modifying file permissions.
+- Supports `--help` and `--version` options.
 
 ---
 
@@ -30,13 +31,65 @@ Designed primarily for local WordPress development environments such as XAMPP.
 
 - Linux operating system.
 - Bash.
-- Root or sudo privileges.
-- Existing Linux user account.
-- Existing web server user account.
-- `getent`, `groupadd`, `usermod`, `chown`, `chmod`, `find`.
-- `setfacl` (recommended).
+- Root privileges (`sudo`).
+- A WordPress installation.
+- Standard Linux utilities used by the script.
+- `acl` package (optional, but recommended).
 
-### Install ACL support
+---
+
+## Installation
+
+Clone or download the repository:
+
+```bash
+git clone https://github.com/YOUR-USERNAME/wp-permissions.git
+```
+
+Enter the project directory:
+
+```bash
+cd wp-permissions
+```
+
+Make the script executable:
+
+```bash
+chmod +x wp-permissions.sh
+```
+
+---
+
+## Install ACL support
+
+### Why use ACL?
+
+ACL stands for *Access Control Lists*. It allows permissions to be assigned to specific users and groups in addition to standard Linux ownership and group permissions.
+
+This is useful when your local Linux user and Apache/PHP run under different accounts but both need access to the same WordPress files.
+
+ACLs also allow default permissions to be inherited by newly created files and directories.
+
+### When is ACL not necessary?
+
+ACL support is optional. If standard Unix permissions and a shared group provide everything you need, you do not need ACLs.
+
+**The script will continue to work without ACL support, using standard Unix permissions instead. However, individual user permissions and default ACL inheritance will not be available.**
+
+### Check if ACL is installed
+
+Run the following commands:
+
+setfacl --version
+getfacl --version
+
+If both commands display version information, the ACL utilities are installed.
+
+If you see command not found, install the acl package for your Linux distribution.
+
+Note: Having the ACL utilities installed does not necessarily mean your filesystem currently supports ACLs. Filesystem support and mount options also matter.
+
+### Install the `acl` package if it is missing:
 
 **Debian / Ubuntu**
 
@@ -58,63 +111,57 @@ sudo pacman -S acl
 
 ---
 
-## Installation
+## Project structure
 
-Clone or download the project.
-
-### Directory structure
+The project contains the following files:
 
 ```text
-WPConstructor-Permissions/
-│
-├── permissions.sh
-├── permissions.conf
-└── README.md
+wp-permissions/
+├── wp-permissions.sh
+├── wp-permissions.conf
+├── README.md
+└── LICENSE
 ```
 
-Make the script executable:
-
-```bash
-chmod +x permissions.sh
-```
-
-The configuration file is automatically created during the first execution if it does not already exist.
+The configuration file is created automatically when the script is run.
 
 ---
 
 ## Usage
 
-Run the script with sudo and specify your WordPress installation directory:
+Run the script with `sudo` and provide the path to your WordPress installation:
 
 ```bash
-sudo ./permissions.sh /path/to/wordpress
+sudo ./wp-permissions.sh /path/to/wordpress
 ```
 
-### Example: XAMPP
+Example for XAMPP:
 
 ```bash
-sudo ./permissions.sh /opt/lampp/htdocs/wpconstructor
+sudo ./wp-permissions.sh /opt/lampp/htdocs/wordpress
 ```
 
-The script will:
+The script checks the target directory and asks for confirmation before applying permission changes.
 
-1. Detect the original Linux user.
-2. Load the saved configuration.
-3. Check whether the configured web server user exists.
-4. Prompt for a valid web server username if necessary.
-5. Create the shared group if it does not exist.
-6. Add both users to the shared group.
-7. Configure ownership and permissions.
-8. Apply ACLs if available.
-9. Save the configuration.
+### Global command
+
+You can make the command available system-wide by creating a symbolic link:
+
+```bash
+sudo ln -s "$(realpath wp-permissions.sh)" /usr/local/bin/wp-permissions
+```
+
+You can then run it from any directory:
+
+```bash
+sudo wp-permissions /path/to/wordpress
+```
 
 ---
 
 ## Configuration
 
-The script uses:
-
-`permissions.conf`
+The script uses `wp-permissions.conf` to store its settings.
 
 Example:
 
@@ -126,143 +173,112 @@ SHARED_GROUP="wp-shared"
 
 ### Configuration options
 
-| Variable       | Description                                |
-| -------------- | ------------------------------------------ |
-| `OWNER`        | Linux user who manages the WordPress files |
-| `WEBUSER`      | Apache/PHP execution user                  |
-| `SHARED_GROUP` | Shared Linux group                         |
+| Option         | Description                                  |
+| -------------- | -------------------------------------------- |
+| `OWNER`        | Your local Linux username.                   |
+| `WEBUSER`      | The Apache/PHP web server user.              |
+| `SHARED_GROUP` | The shared Linux group used for permissions. |
 
-### Automatic user detection
+If `OWNER` is not configured, the script attempts to detect the username that invoked `sudo`.
 
-If `OWNER` is empty, the script detects the original user using:
+**Important:** The web server user depends on your Linux distribution and development environment.
 
-```bash
-OWNER="${SUDO_USER:-}"
-```
-
-This ensures that executing the script with sudo does not accidentally assign ownership to root.
-
-### Web server user
-
-The default web server user is:
-
-```bash
-WEBUSER="daemon"
-```
-
-If this account does not exist, the script asks you to enter a valid username.
-
-Possible usernames include:
-
-- `daemon`
-- `www-data`
-- `apache`
-
-The correct username depends on your web server configuration.
-
-For XAMPP, check the Apache process:
-
-```bash
-ps -eo user,comm | grep -E 'httpd|apache2'
-```
+For XAMPP, `daemon` is commonly used, but you should verify the actual Apache worker user on your system.
 
 ---
 
-## Permission Structure
+## How permissions work
 
-The script uses a shared Linux group.
+The script creates a shared group and adds both the local Linux user and the web server user to it.
 
-Example:
+The default configuration uses:
 
 ```text
-john-melt ─────┐
-               ├── wp-shared
-daemon ────────┘
+Owner:        john-melt
+Web user:     daemon
+Shared group: wp-shared
 ```
-
-Both users receive shared access through this group.
 
 ### Directory permissions
 
-```bash
-chmod 2770
+Directories receive:
+
+```text
+2770
 ```
 
-Meaning:
+This provides:
 
-| Permission | Owner | Group | Others |
-| ---------- | ----- | ----- | ------ |
-| Read       | Yes   | Yes   | No     |
-| Write      | Yes   | Yes   | No     |
-| Execute    | Yes   | Yes   | No     |
-
-The leading `2` enables the setgid bit.
-
-This ensures that newly created files and directories inherit the parent directory's group.
+- Full access to the owner.
+- Full access to the shared group.
+- No access for other users.
+- Setgid enabled so new files and directories inherit the parent directory's group.
 
 ### File permissions
 
-```bash
-chmod 0660
+Regular non-executable files receive:
+
+```text
+0660
 ```
 
-Meaning:
+This provides:
 
-| Permission | Owner | Group | Others |
-| ---------- | ----- | ----- | ------ |
-| Read       | Yes   | Yes   | No     |
-| Write      | Yes   | Yes   | No     |
-| Execute    | No    | No    | No     |
+- Read and write access for the owner.
+- Read and write access for the shared group.
+- No permissions for other users.
+
+Executable files retain executable access while receiving the configured shared-group permissions.
+
+### ACL permissions
+
+When `setfacl` is available, the script additionally configures ACL entries for the local user, web server user, and shared group.
+
+Default ACLs are applied to directories to help new files and directories inherit the intended access permissions.
+
+If ACL utilities are unavailable, the script skips ACL configuration and continues with standard Unix permissions.
 
 ---
 
-## ACL Support
+## Important: Group membership
 
-When `setfacl` is installed, the script additionally configures Access Control Lists.
+After adding users to a shared group, their existing processes may not automatically recognize the new membership.
 
-ACLs provide more granular permissions for individual users.
+You may need to:
 
-The script applies:
+1. Log out and log back in, or start a new session.
+2. Restart Apache/XAMPP so its processes use the updated group membership.
 
-- Read and write permissions for the owner.
-- Read and write permissions for the web server user.
-- Shared group permissions.
-- Default ACLs for new files and directories.
-
-This helps maintain shared access even when files are created by different processes.
-
-Check ACL permissions:
-
-```bash
-getfacl /path/to/wordpress
-```
-
----
-
-## Group Membership
-
-After adding users to a group, existing processes do not automatically receive the updated group membership.
-
-For your current terminal session:
-
-```bash
-newgrp wp-shared
-```
-
-For Apache/XAMPP:
+For XAMPP:
 
 ```bash
 sudo /opt/lampp/lampp restart
 ```
 
-You can verify group membership using:
+You can check a user's group membership with:
 
 ```bash
-groups john-melt
-groups daemon
+id username
 ```
 
-Replace the usernames with the actual configured accounts.
+---
+
+## Safety information
+
+**Use this script only on WordPress development directories that you intend to modify.**
+
+The script performs recursive ownership and permission changes on the selected target directory.
+
+Before running it:
+
+- Verify that the target path is correct.
+- Make sure you have a backup.
+- Check that the configured users and group are correct.
+- Understand that existing ownership and permissions will be changed.
+
+The script uses `find` with `-xdev` to avoid traversing into other mounted filesystems.
+
+It does not provide a complete rollback mechanism. Changes to ownership, permissions, group membership, or configuration may remain if execution is interrupted.
 
 ---
 
@@ -270,7 +286,7 @@ Replace the usernames with the actual configured accounts.
 
 ### Permission denied
 
-Check ownership:
+Check the ownership and permissions:
 
 ```bash
 ls -la /path/to/wordpress
@@ -279,85 +295,53 @@ ls -la /path/to/wordpress
 Check group membership:
 
 ```bash
+id username
+```
+
+Make sure Apache/XAMPP has been restarted after group membership changes.
+
+### ACL commands not found
+
+Install the `acl` package for your distribution.
+
+Check whether the utilities are available:
+
+```bash
+setfacl --version
+getfacl --version
+```
+
+If ACL utilities are unavailable, the script uses standard Unix permissions instead.
+
+### Apache cannot write to WordPress files
+
+Check the actual Apache/PHP user and verify that it belongs to the shared group.
+
+You can inspect the configured group with:
+
+```bash
 getent group wp-shared
 ```
 
-Check ACLs:
-
-```bash
-getfacl /path/to/wordpress
-```
-
-### Apache cannot write files
-
-Verify the actual Apache execution user:
-
-```bash
-ps aux | grep httpd
-```
-
-Check whether that user belongs to the shared group:
-
-```bash
-id daemon
-```
-
-Replace `daemon` with your actual web server user.
-
-Restart Apache after changing group membership.
-
-### ACL support is missing
-
-Install the ACL package for your Linux distribution and execute the script again.
-
 ---
 
-## Security Considerations
+## Security
 
-**WPConstructor Permissions is intended primarily for local development environments.**
+This utility is intended for local WordPress development environments.
 
-The script grants the web server user write access to the entire specified WordPress directory.
+The default directory permissions grant full access to the owner and shared group while denying access to other users.
 
-This is convenient for development but is not recommended for production environments.
+Do not use these settings blindly on production servers or directories that require different access policies.
 
-For production installations:
-
-- Keep WordPress core files protected.
-- Restrict write access to necessary directories.
-- Avoid giving Apache unrestricted write access to PHP files.
-- Keep configuration files protected.
-- Maintain regular backups.
-
-The script also changes ownership recursively throughout the specified directory.
-
-Always verify the target path before execution.
-
----
-
-## Configuration File Security
-
-The configuration file is protected using:
-
-```bash
-chmod 600 permissions.conf
-```
-
-Only its owner can read or modify it.
-
-The configuration file is loaded using Bash `source`, so only use trusted configuration files.
+Always verify the configured web server user and target directory before proceeding.
 
 ---
 
 ## License
 
-MIT
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ---
 
-## WPConstructor
-
-**WPConstructor Permissions**
-
-A utility for simplifying WordPress development workflows on Linux.
-
-Built for developers who want a clean and reliable shared-permission setup between their Linux account and web server.
+**WPConstructor WP Permissions**
+*Simple, consistent, shared permissions for local WordPress development.*
