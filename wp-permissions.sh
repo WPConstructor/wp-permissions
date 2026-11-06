@@ -157,20 +157,7 @@ TARGET="$(realpath -e -- "$1")"
 # Refuse dangerous system directories.
 
 case "$TARGET" in
-    /
-    | /home
-    | /root
-    | /etc
-    | /usr
-    | /var
-    | /opt
-    | /tmp
-    | /boot
-    | /proc
-    | /sys
-    | /dev
-    | /run)
-
+    /|/home|/root|/etc|/usr|/var|/opt|/tmp|/boot|/proc|/sys|/dev)
         die "Refusing to modify a protected system directory."
         ;;
 esac
