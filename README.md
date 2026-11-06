@@ -9,7 +9,7 @@ WPConstructor WP Permissions is a Bash utility that configures shared file and d
 It allows your local Linux user and your Apache/PHP web server user to access and modify the same WordPress installation without constantly changing file ownership or permissions manually.
 
 ---
-d
+
 ## Features
 
 - Automatically detects your Linux username when executed with `sudo`.
@@ -142,6 +142,12 @@ sudo ./wp-permissions.sh /opt/lampp/htdocs/wordpress
 ```
 
 The script checks the target directory and asks for confirmation before applying permission changes.
+
+### How often should you run the script?
+
+Normally, you only need to run wp-permissions.sh once per WordPress installation.
+
+Run it again if ownership, permissions, group membership, or configuration changes, or if restored files have incorrect permissions.
 
 ### Global command
 
